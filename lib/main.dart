@@ -1,3 +1,5 @@
+// ignore_for_file: use_super_parameters
+
 import 'package:flutter/material.dart';
 
 //Boilerplate code wich is necessary in each flutter application like main in java
