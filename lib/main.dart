@@ -1,101 +1,95 @@
-// ignore_for_file: use_super_parameters
+// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 
-//Boilerplate code wich is necessary in each flutter application like main in java
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(useMaterial3: true),
-      home: FirstProject(),
+    return const MaterialApp(
+      home: FacebookApp(),
     );
   }
 }
 
-class FirstProject extends StatelessWidget {
-  const FirstProject({super.key});
+class FacebookApp extends StatelessWidget {
+  const FacebookApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 20,
-        title: Text('Facebook'),
+        title: Text("facebook", style: TextStyle(color: Colors.blueAccent, fontSize: 30, fontWeight:  FontWeight.w700)),
         centerTitle: true,
         leading: IconButton(
+          icon: Icon(Icons.menu, color: Colors.blueAccent, size: 30, ),
           onPressed: () {},
-          icon: Icon(Icons.menu, size: 33, color: Color.fromARGB(255, 0, 0, 0)),
         ),
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(Icons.message, size: 25)),
-          IconButton(onPressed: () {}, icon: Icon(Icons.search, size: 25)),
+          IconButton(
+            icon: Icon(Icons.message, color: Colors.blueAccent, size: 30,), 
+            onPressed: () {}),
+          IconButton(
+            icon: Icon(Icons.search, color: Colors.blueAccent, size: 30,),
+            onPressed: () {},
+          ),
         ],
+        
+        backgroundColor: Colors.white,
+        elevation: 20,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: Icon(Icons.add),
-      ),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+    
+      body: Container(
+        color: Colors.blueGrey,
+        height: 500,
+        width: double.infinity,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-
-          //crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Center(
+            Expanded(
+              flex:1,
               child: Container(
-                //color: const Color.fromARGB(255, 148, 155, 176),
-                margin: EdgeInsets.fromLTRB(20, 50, 20, 50),
-                padding: EdgeInsets.all(11),
-                height: 270,
-                width: 266,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black, width: 3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "Flutter is an open source framework ",
-                  style: TextStyle(
-                    fontSize: 25,
-                    //backgroundColor:Colors.blue
-                    color: const Color.fromARGB(255, 0, 0, 0),
-                    decoration: TextDecoration.underline,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.bold,
-                    height: 1.5,
-                    letterSpacing: 0,
-                    wordSpacing: 3,
-                  ),
-                  //maxLines: 2,
-                  overflow: TextOverflow.fade,
-                  textDirection: TextDirection.ltr,
-                ),
+                color: Colors.amber[200],
+                width: 99,
+                height: 100,
+                child: Text("c4a.shop", style: TextStyle(fontSize: 19, ),),
               ),
             ),
-            Text(
-              "Samar",
-              style: TextStyle(backgroundColor: Colors.teal, fontSize: 33),
+            Expanded(
+              flex: 1,
+              child: Container(
+                alignment: Alignment.center,
+                color: Colors.blue[300],
+                width: 99,
+                height: 100,
+                child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
+              ),
             ),
-            SizedBox(
-              height: 300,
-              child: Text("SAMAR", textAlign: TextAlign.center),
+            Expanded(
+              flex: 1,
+              child: Container(
+                  alignment: Alignment.center,
+                  color: Colors.red[300],
+                  width: 99,
+                  height: 100,
+                  child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
             ),
-            IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.favorite, size: 60, color: Colors.red),
-            ),
+              
+              
+              )
+          
+          
+          
           ],
         ),
       ),
+    
+    
     );
   }
 }
