@@ -8,13 +8,13 @@ class TaskInput extends StatelessWidget {
   final VoidCallback onAddTask;
 
   const TaskInput({
-    Key? key,
+    super.key,
     required this.controller,
     required this.selectedDay,
     required this.daysOfWeek,
     required this.onDayChanged,
     required this.onAddTask,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

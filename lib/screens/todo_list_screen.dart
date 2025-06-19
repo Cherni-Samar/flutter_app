@@ -6,7 +6,7 @@ import '../widgets/task_to_display.dart';
 import '../utils/constants.dart';
 
 class TodoListScreen extends StatefulWidget {
-  const TodoListScreen({Key? key}) : super(key: key);
+  const TodoListScreen({super.key});
 
   @override
   State<TodoListScreen> createState() => _TodoListScreenState();
