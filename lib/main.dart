@@ -26,7 +26,7 @@ class FirstProject extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar.new(
+      appBar: AppBar(
         elevation: 20,
         title: Text('Facebook'),
         centerTitle: true,
@@ -43,38 +43,58 @@ class FirstProject extends StatelessWidget {
         onPressed: () {},
         child: Icon(Icons.add),
       ),
-      body:  Center(
-        child: Container(
-            //color: const Color.fromARGB(255, 148, 155, 176),
-            margin: EdgeInsets.fromLTRB(20, 50, 20, 50),
-            padding: EdgeInsets.all(11),
-            height: 270,
-            width: 266,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black , width: 3),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child:Text(
-                "Flutter is an open source framework ",
-                style: TextStyle(
-                  fontSize: 25,
-                  //backgroundColor:Colors.blue
-                  color: const Color.fromARGB(255, 0, 0, 0),
-                  decoration: TextDecoration.underline,
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.bold,
-                  height: 1.5,
-                  letterSpacing: 0,
-                  wordSpacing: 3,
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+
+          //crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Center(
+              child: Container(
+                //color: const Color.fromARGB(255, 148, 155, 176),
+                margin: EdgeInsets.fromLTRB(20, 50, 20, 50),
+                padding: EdgeInsets.all(11),
+                height: 270,
+                width: 266,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 3),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                //maxLines: 2,
-                overflow: TextOverflow.fade,
-                textDirection: TextDirection.ltr,
-                
+                child: Text(
+                  "Flutter is an open source framework ",
+                  style: TextStyle(
+                    fontSize: 25,
+                    //backgroundColor:Colors.blue
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                    decoration: TextDecoration.underline,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.bold,
+                    height: 1.5,
+                    letterSpacing: 0,
+                    wordSpacing: 3,
+                  ),
+                  //maxLines: 2,
+                  overflow: TextOverflow.fade,
+                  textDirection: TextDirection.ltr,
+                ),
               ),
             ),
+            Text(
+              "Samar",
+              style: TextStyle(backgroundColor: Colors.teal, fontSize: 33),
+            ),
+            SizedBox(
+              height: 300,
+              child: Text("SAMAR", textAlign: TextAlign.center),
+            ),
+            IconButton(
+              onPressed: () {},
+              icon: Icon(Icons.favorite, size: 60, color: Colors.red),
+            ),
+          ],
+        ),
       ),
-        );
+    );
   }
 }
