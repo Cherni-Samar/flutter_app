@@ -34,10 +34,47 @@ class FirstProject extends StatelessWidget {
           onPressed: () {},
           icon: Icon(Icons.menu, size: 33, color: Color.fromARGB(255, 0, 0, 0)),
         ),
-        actions: [IconButton(onPressed: (){}, icon: Icon(Icons.message , size:25)),
-        IconButton(onPressed: (){}, icon:Icon(Icons.search,size: 25,))],
+        actions: [
+          IconButton(onPressed: () {}, icon: Icon(Icons.message, size: 25)),
+          IconButton(onPressed: () {}, icon: Icon(Icons.search, size: 25)),
+        ],
       ),
-      body: Center(child: Text("Hello, Samar❤️" , style: TextStyle(fontSize: 40),)),
-    );
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        child: Icon(Icons.add),
+      ),
+      body:  Center(
+        child: Container(
+            //color: const Color.fromARGB(255, 148, 155, 176),
+            margin: EdgeInsets.fromLTRB(20, 50, 20, 50),
+            padding: EdgeInsets.all(11),
+            height: 270,
+            width: 266,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black , width: 3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child:Text(
+                "Flutter is an open source framework ",
+                style: TextStyle(
+                  fontSize: 25,
+                  //backgroundColor:Colors.blue
+                  color: const Color.fromARGB(255, 0, 0, 0),
+                  decoration: TextDecoration.underline,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.bold,
+                  height: 1.5,
+                  letterSpacing: 0,
+                  wordSpacing: 3,
+                ),
+                //maxLines: 2,
+                overflow: TextOverflow.fade,
+                textDirection: TextDirection.ltr,
+                
+              ),
+            ),
+      ),
+        );
   }
 }
