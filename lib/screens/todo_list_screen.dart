@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../services/task_storage_service.dart';
-import '../widgets/task_input.dart';
-import '../widgets/task_to_display.dart';
-import '../utils/constants.dart';
+import '../widgets/task_to_display.dart'; // TaskItem
+import '../screens/calendar_page.dart'; // adapte le chemin si besoin
 
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
@@ -14,8 +13,6 @@ class TodoListScreen extends StatefulWidget {
 
 class _TodoListScreenState extends State<TodoListScreen> {
   final TaskStorageService _storageService = TaskStorageService();
-  final TextEditingController _controller = TextEditingController();
-  String selectedDay = daysOfWeek[0];
   List<Task> tasks = [];
 
   @override
@@ -29,16 +26,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
     setState(() {
       tasks = loadedTasks;
     });
-  }
-
-  void _addTask() {
-    if (_controller.text.isEmpty) return;
-    final newTask = Task(task: _controller.text, day: selectedDay);
-    setState(() {
-      tasks.add(newTask);
-      _controller.clear();
-    });
-    _storageService.saveTasks(tasks);
   }
 
   void _deleteTask(Task task) {
@@ -57,48 +44,83 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Trie les tâches par date croissante
+    tasks.sort((a, b) => DateTime.parse(a.day).compareTo(DateTime.parse(b.day)));
+
+    // Groupe les tâches par date (String "YYYY-MM-DD")
+    final Map<String, List<Task>> groupedTasks = {};
+    for (var task in tasks) {
+      groupedTasks.putIfAbsent(task.day, () => []).add(task);
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('To-Do List'),
+        title: const Text('Tâches par date'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            tooltip: 'Voir calendrier',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CalendarPage(
+                    tasks: tasks,
+                    onTasksUpdated: (updatedTasks) {
+                      setState(() {
+                        tasks = updatedTasks;
+                      });
+                      _storageService.saveTasks(tasks);
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TaskInput(
-              controller: _controller,
-              selectedDay: selectedDay,
-              daysOfWeek: daysOfWeek,
-              onDayChanged: (day) {
-                if (day != null) {
-                  setState(() {
-                    selectedDay = day;
-                  });
-                }
-              },
-              onAddTask: _addTask,
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                children: daysOfWeek.map((day) {
-                  final dayTasks = tasks.where((t) => t.day == day).toList();
-                  if (dayTasks.isEmpty) return const SizedBox.shrink();
-                  return ExpansionTile(
-                    title: Text(day),
-                    children: dayTasks.map((task) {
-                      return TaskItem(
-                        task: task,
-                        onToggle: () => _toggleTaskCheck(task),
-                        onDelete: () => _deleteTask(task),
-                      );
-                    }).toList(),
+        child: groupedTasks.isEmpty
+            ? const Center(child: Text("Aucune tâche disponible"))
+            : ListView(
+                children: groupedTasks.entries.map((entry) {
+                  final dateStr = entry.key;
+                  final tasksForDate = entry.value;
+
+                  // Formate la date en jj/mm/aaaa
+                  final date = DateTime.tryParse(dateStr);
+                  final formattedDate = date != null
+                      ? "${date.day.toString().padLeft(2, '0')}/"
+                        "${date.month.toString().padLeft(2, '0')}/"
+                        "${date.year}"
+                      : dateStr;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          formattedDate,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      ),
+                      ...tasksForDate.map((task) => TaskItem(
+                            task: task,
+                            onToggle: () => _toggleTaskCheck(task),
+                            onDelete: () => _deleteTask(task),
+                          )),
+                      const Divider(thickness: 1),
+                    ],
                   );
                 }).toList(),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

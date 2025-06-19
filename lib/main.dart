@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/services/task_storage_service.dart';
+import 'services/task_storage_service.dart';
 import 'screens/todo_list_screen.dart';
 
 Future<void> main() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
   final taskStorage = TaskStorageService();
-  await taskStorage.autoCheckTasksIfNeeded(); // ← Appel ici
+  await taskStorage.autoCheckTasksIfNeeded(); // mise à jour automatique des tâches
   runApp(const MyApp());
-
 }
 
 class MyApp extends StatelessWidget {
-  
   const MyApp({super.key});
 
   @override
@@ -24,8 +22,6 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color.fromARGB(255, 169, 200, 216),
       ),
       home: const TodoListScreen(),
-      
-      
     );
   }
 }
