@@ -1,3 +1,4 @@
+
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
@@ -7,12 +8,13 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: FacebookApp(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -44,40 +46,41 @@ class FacebookApp extends StatelessWidget {
         elevation: 20,
       ),
     
-      body: Container(
-        color: Colors.blueGrey,
-        height: 500,
-        width: double.infinity,
-        child: Row(
+      body: Padding(
+        padding: EdgeInsets.only(right: 99),
+        child: Container(
+    
+  
+        child: Column(
           children: [
             Expanded(
-              flex:1,
+              flex: 1,
               child: Container(
                 alignment: Alignment.center,
+                child: Text("c4a.shop", style: TextStyle(fontSize: 19, ),),
                 color: Colors.amber[200],
                 width: 99,
                 height: 100,
-                child: Text("c4a.shop", style: TextStyle(fontSize: 19, ),),
               ),
             ),
             Expanded(
               flex: 1,
               child: Container(
                 alignment: Alignment.center,
+                child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
                 color: Colors.blue[300],
                 width: 99,
                 height: 100,
-                child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
               ),
             ),
             Expanded(
               flex: 1,
               child: Container(
                   alignment: Alignment.center,
+                  child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
                   color: Colors.red[300],
                   width: 99,
                   height: 100,
-                  child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
             ),
               
               
@@ -87,7 +90,11 @@ class FacebookApp extends StatelessWidget {
           
           ],
         ),
+        color: Colors.blueGrey,
+        height: 500,
+        width: double.infinity,
       ),
+      )
     
     
     );
