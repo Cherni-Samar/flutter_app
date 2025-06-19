@@ -51,36 +51,41 @@ class FacebookApp extends StatelessWidget {
         child: Container(
     
   
+        color: Colors.blueGrey,
+        height: 500,
+        width: double.infinity,
+    
+  
         child: Column(
           children: [
             Expanded(
               flex: 1,
               child: Container(
                 alignment: Alignment.center,
-                child: Text("c4a.shop", style: TextStyle(fontSize: 19, ),),
                 color: Colors.amber[200],
                 width: 99,
                 height: 100,
+                child: Text("c4a.shop", style: TextStyle(fontSize: 19, ),),
               ),
             ),
             Expanded(
               flex: 1,
               child: Container(
                 alignment: Alignment.center,
-                child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
                 color: Colors.blue[300],
                 width: 99,
                 height: 100,
+                child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
               ),
             ),
             Expanded(
               flex: 1,
               child: Container(
                   alignment: Alignment.center,
-                  child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
                   color: Colors.red[300],
                   width: 99,
                   height: 100,
+                  child: Text("c4a.shop", style: TextStyle(fontSize: 19, color: Colors.white),),
             ),
               
               
@@ -90,9 +95,6 @@ class FacebookApp extends StatelessWidget {
           
           ],
         ),
-        color: Colors.blueGrey,
-        height: 500,
-        width: double.infinity,
       ),
       )
     
