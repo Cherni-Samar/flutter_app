@@ -44,7 +44,8 @@ class FirstProject extends StatelessWidget {
         child: Icon(Icons.add),
       ),
       body: SingleChildScrollView(
-        child: Column(
+        scrollDirection: Axis.horizontal,
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
 
           //crossAxisAlignment: CrossAxisAlignment.center,
