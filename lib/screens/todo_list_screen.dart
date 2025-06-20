@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/screens/outlook_calendar_page.dart';
 import '../models/task.dart';
 import '../services/task_storage_service.dart';
 import '../widgets/task_to_display.dart'; // TaskItem
@@ -45,7 +46,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
   @override
   Widget build(BuildContext context) {
     // Trie les tâches par date croissante
-    tasks.sort((a, b) => DateTime.parse(a.day).compareTo(DateTime.parse(b.day)));
+    tasks.sort(
+      (a, b) => DateTime.parse(a.day).compareTo(DateTime.parse(b.day)),
+    );
 
     // Groupe les tâches par date (String "YYYY-MM-DD")
     final Map<String, List<Task>> groupedTasks = {};
@@ -64,7 +67,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CalendarPage(
+                  builder: (context) => OutlookCalendarPage(
                     tasks: tasks,
                     onTasksUpdated: (updatedTasks) {
                       setState(() {
@@ -93,8 +96,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   final date = DateTime.tryParse(dateStr);
                   final formattedDate = date != null
                       ? "${date.day.toString().padLeft(2, '0')}/"
-                        "${date.month.toString().padLeft(2, '0')}/"
-                        "${date.year}"
+                            "${date.month.toString().padLeft(2, '0')}/"
+                            "${date.year}"
                       : dateStr;
 
                   return Column(
@@ -111,11 +114,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
                           ),
                         ),
                       ),
-                      ...tasksForDate.map((task) => TaskItem(
-                            task: task,
-                            onToggle: () => _toggleTaskCheck(task),
-                            onDelete: () => _deleteTask(task),
-                          )),
+                      ...tasksForDate.map(
+                        (task) => TaskItem(
+                          task: task,
+                          onToggle: () => _toggleTaskCheck(task),
+                          onDelete: () => _deleteTask(task),
+                        ),
+                      ),
                       const Divider(thickness: 1),
                     ],
                   );

@@ -4,13 +4,13 @@ import '../models/task.dart';
 
 class CalendarPage extends StatefulWidget {
   final List<Task> tasks;
-  final Function(List<Task>) onTasksUpdated; // callback pour sauvegarder
+  final Function(List<Task>) onTasksUpdated;
 
   const CalendarPage({
     required this.tasks,
     required this.onTasksUpdated,
-    super.key,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -20,49 +20,88 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
+  Map<DateTime, List<Task>> _groupedTasks = {};
+
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _groupTasks();
   }
 
-  void _addTask(String taskText) {
-    if (_selectedDay == null) return;
+  void _groupTasks() {
+    _groupedTasks.clear();
+    for (var task in widget.tasks) {
+      try {
+        final date = DateTime.parse(task.day);
+        final day = DateTime(date.year, date.month, date.day);
+        if (_groupedTasks[day] == null) _groupedTasks[day] = [];
+        _groupedTasks[day]!.add(task);
+      } catch (_) {}
+    }
+  }
 
-    final newTask = Task(
-      task: taskText,
-      day: _selectedDay!.toIso8601String().substring(0, 10),
-    );
-
-    setState(() {
-      widget.tasks.add(newTask);
-    });
-
-    widget.onTasksUpdated(widget.tasks);
+  List<Task> _getTasksForDay(DateTime day) {
+    return _groupedTasks[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
   Future<void> _showAddTaskDialog() async {
+    final TextEditingController _controller = TextEditingController();
+
     final newTaskText = await showDialog<String>(
       context: context,
-      builder: (context) => _AddTaskDialog(date: _selectedDay!),
+      builder: (context) => AlertDialog(
+        title: Text("Ajouter une tâche pour le ${_formatDate(_selectedDay!)}"),
+        content: TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Texte de la tâche'),
+          onSubmitted: (_) {
+            if (_controller.text.trim().isNotEmpty) {
+              Navigator.pop(context, _controller.text.trim());
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_controller.text.trim().isNotEmpty) {
+                Navigator.pop(context, _controller.text.trim());
+              }
+            },
+            child: const Text('Ajouter'),
+          ),
+        ],
+      ),
     );
+
     if (newTaskText != null && newTaskText.isNotEmpty) {
-      _addTask(newTaskText);
+      final newTask = Task(
+        task: newTaskText,
+        day: _selectedDay!.toIso8601String().substring(0, 10),
+      );
+
+      setState(() {
+        widget.tasks.add(newTask);
+        _groupTasks();
+      });
+      widget.onTasksUpdated(widget.tasks);
     }
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}/"
+        "${date.month.toString().padLeft(2, '0')}/"
+        "${date.year}";
   }
 
   @override
   Widget build(BuildContext context) {
-    final tasksForSelectedDay = widget.tasks.where((task) {
-      try {
-        final taskDate = DateTime.parse(task.day);
-        return taskDate.year == _selectedDay?.year &&
-            taskDate.month == _selectedDay?.month &&
-            taskDate.day == _selectedDay?.day;
-      } catch (_) {
-        return false;
-      }
-    }).toList();
+    final tasksForDay = _getTasksForDay(_selectedDay!);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Calendrier des tâches")),
@@ -72,8 +111,7 @@ class _CalendarPageState extends State<CalendarPage> {
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: _focusedDay,
-            selectedDayPredicate: (day) =>
-                _selectedDay != null && isSameDay(_selectedDay, day),
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
                 _selectedDay = selectedDay;
@@ -81,27 +119,42 @@ class _CalendarPageState extends State<CalendarPage> {
               });
             },
             calendarFormat: CalendarFormat.month,
+            eventLoader: (day) => _getTasksForDay(day),
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: ListView.builder(
-              itemCount: tasksForSelectedDay.length,
-              itemBuilder: (context, index) {
-                final task = tasksForSelectedDay[index];
-                return ListTile(
-                  title: Text(task.task),
-                  trailing: Checkbox(
-                    value: task.isChecked,
-                    onChanged: (val) {
-                      setState(() {
-                        task.isChecked = val ?? false;
-                      });
-                      widget.onTasksUpdated(widget.tasks);
+            child: tasksForDay.isEmpty
+                ? Center(
+                    child: Text(
+                      'Aucune tâche pour le ${_formatDate(_selectedDay!)}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: tasksForDay.length,
+                    itemBuilder: (context, index) {
+                      final task = tasksForDay[index];
+                      return ListTile(
+                        title: Text(
+                          task.task,
+                          style: TextStyle(
+                            decoration: task.isChecked
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        trailing: Checkbox(
+                          value: task.isChecked,
+                          onChanged: (val) {
+                            setState(() {
+                              task.isChecked = val ?? false;
+                            });
+                            widget.onTasksUpdated(widget.tasks);
+                          },
+                        ),
+                      );
                     },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -110,52 +163,6 @@ class _CalendarPageState extends State<CalendarPage> {
         tooltip: 'Ajouter une tâche',
         child: const Icon(Icons.add),
       ),
-    );
-  }
-}
-
-class _AddTaskDialog extends StatefulWidget {
-  final DateTime date;
-  const _AddTaskDialog({required this.date, super.key});
-
-  @override
-  State<_AddTaskDialog> createState() => _AddTaskDialogState();
-}
-
-class _AddTaskDialogState extends State<_AddTaskDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    final formattedDate =
-        "${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}";
-
-    return AlertDialog(
-      title: Text('Ajouter une tâche pour le $formattedDate'),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: 'Texte de la tâche'),
-        onSubmitted: (_) {
-          if (_controller.text.trim().isNotEmpty) {
-            Navigator.pop(context, _controller.text.trim());
-          }
-        },
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_controller.text.trim().isNotEmpty) {
-              Navigator.pop(context, _controller.text.trim());
-            }
-          },
-          child: const Text('Ajouter'),
-        ),
-      ],
     );
   }
 }
