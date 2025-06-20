@@ -48,63 +48,115 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
     final TextEditingController controller = TextEditingController();
     int selectedDuration = 60;
 
+    // 🔒 Arrondir le startTime à l’heure ou demi-heure
+    final exactStart = startTime;
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Nouvelle tâche", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Nom de la tâche',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                filled: true,
-                fillColor: Colors.grey[100],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text(
+            "Nouvelle tâche",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'Nom de la tâche',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text(
+                    "Durée: ",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  DropdownButton<int>(
+                    value: selectedDuration,
+                    items: [30, 60, 90, 120]
+                        .map(
+                          (d) =>
+                              DropdownMenuItem(value: d, child: Text('$d min')),
+                        )
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => selectedDuration = val ?? 60),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Début à ${_formatHour(exactStart)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text(
+                "Annuler",
+                style: TextStyle(color: Colors.blue),
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text("Durée: ", style: TextStyle(fontWeight: FontWeight.bold)),
-                DropdownButton<int>(
-                  value: selectedDuration,
-                  items: [15, 30, 45, 60, 90, 120]
-                      .map((d) => DropdownMenuItem(value: d, child: Text('$d min')))
-                      .toList(),
-                  onChanged: (val) => setState(() => selectedDuration = val ?? 60),
-                  dropdownColor: Colors.white,
-                  style: const TextStyle(color: Colors.black87),
-                  underline: const SizedBox(),
+            ElevatedButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                  Navigator.pop(context, true);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[700],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+              ),
+              child: const Text(
+                "Ajouter",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Annuler", style: TextStyle(color: Colors.blue)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                Navigator.pop(context, true);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("Ajouter", style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
 
     if (confirmed == true) {
+      final newStart = exactStart;
+      final newEnd = newStart.add(Duration(minutes: selectedDuration));
+
+      final conflict = _appointments.any(
+        (a) => newStart.isBefore(a.endTime) && newEnd.isAfter(a.startTime),
+      );
+
+      if (conflict) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("⛔ Conflit : une tâche existe déjà à ce créneau."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       final task = Task(
         task: controller.text.trim(),
-        day: startTime.toIso8601String(),
+        day: newStart.toIso8601String(),
         isChecked: false,
         durationMinutes: selectedDuration,
       );
@@ -137,25 +189,40 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
   }
 
   void _showTaskPopup(DateTime date) async {
-    final tasks = _tasksForSelectedDate()..sort((a, b) => a.day.compareTo(b.day));
+    final tasks = _tasksForSelectedDate()
+      ..sort((a, b) => a.day.compareTo(b.day));
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Tâches pour ${_formatDate(date)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Tâches pour ${_formatDate(date)}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           height: MediaQuery.of(context).size.height * 0.5,
           child: tasks.isEmpty
-              ? const Center(child: Text('Aucune tâche pour ce jour.', style: TextStyle(fontStyle: FontStyle.italic)))
+              ? const Center(
+                  child: Text(
+                    'Aucune tâche pour ce jour.',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                )
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
                     final task = tasks[index];
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text(task.task, style: const TextStyle(fontSize: 16)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      title: Text(
+                        task.task,
+                        style: const TextStyle(fontSize: 16),
+                      ),
                       trailing: Checkbox(
                         value: task.isChecked,
                         activeColor: Colors.blue[700],
@@ -184,13 +251,28 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now(); // 04:39 PM CET, June 20, 2025
+    final now = DateTime.now(); // 05:01 PM CET, June 20, 2025
 
     if (widget.tasks.isEmpty) {
       widget.tasks.addAll([
-        Task(task: "new", day: "2025-06-20T10:00:00Z", isChecked: false, durationMinutes: 60),
-        Task(task: "ff", day: "2025-06-20T11:00:00Z", isChecked: false, durationMinutes: 15),
-        Task(task: "test", day: "2025-06-20T12:00:00Z", isChecked: false, durationMinutes: 15),
+        Task(
+          task: "new",
+          day: "2025-06-20T10:00:00Z",
+          isChecked: false,
+          durationMinutes: 60,
+        ),
+        Task(
+          task: "ff",
+          day: "2025-06-20T11:00:00Z",
+          isChecked: false,
+          durationMinutes: 15,
+        ),
+        Task(
+          task: "test",
+          day: "2025-06-20T12:00:00Z",
+          isChecked: false,
+          durationMinutes: 15,
+        ),
       ]);
       _appointments = _buildAppointments(widget.tasks);
     }
@@ -211,23 +293,38 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
                     children: [
                       // Professional date header
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 20,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.blue[700],
-                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, 2))],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               'Aujourd\'hui: ${_formatDate(now)}',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       SizedBox(
-                        height: constraints.maxHeight - 64, // Adjusted for header height with shadow
+                        height:
+                            constraints.maxHeight -
+                            64, // Adjusted for header height with shadow
                         child: SfCalendar(
                           view: CalendarView.workWeek,
                           dataSource: TaskDataSource(_appointments),
@@ -236,7 +333,9 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
                           showNavigationArrow: false,
                           todayHighlightColor: Colors.blue[700],
                           headerStyle: const CalendarHeaderStyle(
-                            textStyle: TextStyle(fontSize: 0), // Hidden header text
+                            textStyle: TextStyle(
+                              fontSize: 0,
+                            ), // Hidden header text
                           ),
                           viewHeaderStyle: ViewHeaderStyle(
                             dayTextStyle: const TextStyle(
@@ -292,7 +391,8 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
                             final date = calendarTapDetails.date;
                             if (date != null) {
                               setState(() => _selectedDate = date);
-                              if (calendarTapDetails.targetElement == CalendarElement.calendarCell) {
+                              if (calendarTapDetails.targetElement ==
+                                  CalendarElement.calendarCell) {
                                 _addTaskForDate(date);
                               } else {
                                 _showTaskPopup(date);
@@ -300,44 +400,57 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
                             }
                           },
                           appointmentBuilder: (context, details) {
-                            final Appointment appointment = details.appointments.first;
-                            final startTime = _formatHour(appointment.startTime);
+                            final Appointment appointment =
+                                details.appointments.first;
+                            final startTime = _formatHour(
+                              appointment.startTime,
+                            );
                             final endTime = _formatHour(appointment.endTime);
 
                             return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              padding: const EdgeInsets.all(8),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: appointment.color,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 2, offset: const Offset(0, 1))],
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              constraints: const BoxConstraints(maxHeight: 80), // Increased to 80
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Flexible(
-                                    flex: 1,
                                     child: Text(
                                       appointment.subject,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                                        fontSize: 16,
                                         height: 1.2,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
                                   Flexible(
-                                    flex: 1,
                                     child: Text(
                                       '$startTime - $endTime',
                                       style: const TextStyle(
                                         color: Colors.white70,
-                                        fontSize: 12,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                       ),
                                       maxLines: 1,
@@ -363,7 +476,10 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
           final date = _selectedDate ?? DateTime.now();
           _addTaskForDate(date);
         },
-        label: const Text("Nouvelle tâche", style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          "Nouvelle tâche",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         icon: const Icon(Icons.add),
         backgroundColor: Colors.blue[700],
         elevation: 6,
