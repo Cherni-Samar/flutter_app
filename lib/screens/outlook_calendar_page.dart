@@ -9,8 +9,8 @@ class OutlookCalendarPage extends StatefulWidget {
   const OutlookCalendarPage({
     required this.tasks,
     required this.onTasksUpdated,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<OutlookCalendarPage> createState() => _OutlookCalendarPageState();
@@ -31,15 +31,13 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
         .map((task) {
           final start = DateTime.tryParse(task.day);
           if (start == null) return null;
-
           final end = start.add(Duration(minutes: task.durationMinutes));
           return Appointment(
             startTime: start,
             endTime: end,
             subject: task.task,
-            color: task.isChecked ? Colors.grey.withOpacity(0.5) : Colors.blue,
+            color: task.isChecked ? Colors.grey[300]! : Colors.blue[700]!,
             isAllDay: false,
-            
           );
         })
         .whereType<Appointment>()
@@ -52,53 +50,54 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            "Nouvelle tâche - ${_formatDate(startTime)} à ${_formatHour(startTime)}",
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(hintText: 'Nom de la tâche'),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Nouvelle tâche", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'Nom de la tâche',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                filled: true,
+                fillColor: Colors.grey[100],
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text("Durée: "),
-                  DropdownButton<int>(
-                    value: selectedDuration,
-                    items: [15, 30, 45, 60, 90, 120].map((duration) {
-                      return DropdownMenuItem(
-                        value: duration,
-                        child: Text("$duration min"),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedDuration = val);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Annuler"),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (controller.text.trim().isNotEmpty) {
-                  Navigator.pop(context, true);
-                }
-              },
-              child: const Text("Ajouter"),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text("Durée: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                DropdownButton<int>(
+                  value: selectedDuration,
+                  items: [15, 30, 45, 60, 90, 120]
+                      .map((d) => DropdownMenuItem(value: d, child: Text('$d min')))
+                      .toList(),
+                  onChanged: (val) => setState(() => selectedDuration = val ?? 60),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(color: Colors.black87),
+                  underline: const SizedBox(),
+                ),
+              ],
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Annuler", style: TextStyle(color: Colors.blue)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.pop(context, true);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text("Ajouter", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
 
@@ -107,7 +106,7 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
         task: controller.text.trim(),
         day: startTime.toIso8601String(),
         isChecked: false,
-        durationMinutes: selectedDuration, // <-- Ici !
+        durationMinutes: selectedDuration,
       );
 
       setState(() {
@@ -137,154 +136,240 @@ class _OutlookCalendarPageState extends State<OutlookCalendarPage> {
         .toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final tasksForDay = _tasksForSelectedDate();
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.indigo,
-        elevation: 6,
-        centerTitle: true,
-        title: const Text(
-          'Emploi du temps',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+  void _showTaskPopup(DateTime date) async {
+    final tasks = _tasksForSelectedDate()..sort((a, b) => a.day.compareTo(b.day));
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('Tâches pour ${_formatDate(date)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: tasks.isEmpty
+              ? const Center(child: Text('Aucune tâche pour ce jour.', style: TextStyle(fontStyle: FontStyle.italic)))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = tasks[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      title: Text(task.task, style: const TextStyle(fontSize: 16)),
+                      trailing: Checkbox(
+                        value: task.isChecked,
+                        activeColor: Colors.blue[700],
+                        onChanged: (val) {
+                          setState(() {
+                            task.isChecked = val ?? false;
+                            _appointments = _buildAppointments(widget.tasks);
+                            widget.onTasksUpdated(widget.tasks);
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                    );
+                  },
+                ),
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SfCalendar(
-              view: CalendarView.week,
-              dataSource: TaskDataSource(_appointments),
-              showDatePickerButton: true,
-              showWeekNumber: true,
-              todayHighlightColor: const Color.fromARGB(255, 33, 28, 163),
-              timeSlotViewSettings: const TimeSlotViewSettings(
-                timeInterval: Duration(minutes: 60),
-                timeIntervalHeight: 60,
-                timeFormat: 'HH:mm',
-                startHour: 1,
-                endHour: 24,
-                dateFormat: 'd',
-              ),
-              onTap: (calendarTapDetails) {
-                if (calendarTapDetails.targetElement ==
-                    CalendarElement.calendarCell) {
-                  final date = calendarTapDetails.date;
-                  if (date != null) {
-                    setState(() {
-                      _selectedDate = date;
-                    });
-                    _addTaskForDate(date);
-                  }
-                }
-              },
-              appointmentBuilder: (context, details) {
-                final Appointment appointment = details.appointments.first;
-
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: appointment.color,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        offset: const Offset(1, 2),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          appointment.subject,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        appointment.color == Colors.grey.withOpacity(0.5)
-                            ? Icons.check_circle_outline
-                            : Icons.circle_outlined,
-                        color: Colors.white70,
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.indigo.withOpacity(0.1),
-              border: Border(top: BorderSide(color: Colors.indigo, width: 1.5)),
-            ),
-            height: 160,
-            child: tasksForDay.isEmpty
-                ? Center(
-                    child: Text(
-                      _selectedDate == null
-                          ? 'Sélectionnez un jour pour voir les tâches'
-                          : 'Aucune tâche pour le ${_formatDate(_selectedDate!)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.indigo,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: tasksForDay.length,
-                    itemBuilder: (context, index) {
-                      final task = tasksForDay[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        child: ListTile(
-                          title: Text(task.task),
-                          trailing: Checkbox(
-                            value: task.isChecked,
-                            activeColor: Colors.indigo,
-                            onChanged: (val) {
-                              setState(() {
-                                task.isChecked = val ?? false;
-                                _appointments = _buildAppointments(
-                                  widget.tasks,
-                                );
-                                widget.onTasksUpdated(widget.tasks);
-                              });
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Fermer", style: TextStyle(color: Colors.blue)),
           ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now(); // 04:39 PM CET, June 20, 2025
+
+    if (widget.tasks.isEmpty) {
+      widget.tasks.addAll([
+        Task(task: "new", day: "2025-06-20T10:00:00Z", isChecked: false, durationMinutes: 60),
+        Task(task: "ff", day: "2025-06-20T11:00:00Z", isChecked: false, durationMinutes: 15),
+        Task(task: "test", day: "2025-06-20T12:00:00Z", isChecked: false, durationMinutes: 15),
+      ]);
+      _appointments = _buildAppointments(widget.tasks);
+    }
+
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 70),
+                child: Container(
+                  color: Colors.grey[50],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Professional date header
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[700],
+                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, 2))],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Aujourd\'hui: ${_formatDate(now)}',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: constraints.maxHeight - 64, // Adjusted for header height with shadow
+                        child: SfCalendar(
+                          view: CalendarView.workWeek,
+                          dataSource: TaskDataSource(_appointments),
+                          initialDisplayDate: now,
+                          showDatePickerButton: false,
+                          showNavigationArrow: false,
+                          todayHighlightColor: Colors.blue[700],
+                          headerStyle: const CalendarHeaderStyle(
+                            textStyle: TextStyle(fontSize: 0), // Hidden header text
+                          ),
+                          viewHeaderStyle: ViewHeaderStyle(
+                            dayTextStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            dateTextStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            backgroundColor: Colors.grey[200],
+                          ),
+                          timeSlotViewSettings: const TimeSlotViewSettings(
+                            timeInterval: Duration(minutes: 30),
+                            timeIntervalHeight: 70,
+                            timeFormat: 'HH:mm',
+                            startHour: 6,
+                            endHour: 20,
+                            timeTextStyle: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          specialRegions: [
+                            TimeRegion(
+                              startTime: DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                                now.hour,
+                                now.minute,
+                              ),
+                              endTime: DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                                now.hour,
+                                now.minute + 1,
+                              ),
+                              color: Colors.blue[100]!.withOpacity(0.5),
+                              text: 'Now',
+                              textStyle: const TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          onTap: (calendarTapDetails) {
+                            final date = calendarTapDetails.date;
+                            if (date != null) {
+                              setState(() => _selectedDate = date);
+                              if (calendarTapDetails.targetElement == CalendarElement.calendarCell) {
+                                _addTaskForDate(date);
+                              } else {
+                                _showTaskPopup(date);
+                              }
+                            }
+                          },
+                          appointmentBuilder: (context, details) {
+                            final Appointment appointment = details.appointments.first;
+                            final startTime = _formatHour(appointment.startTime);
+                            final endTime = _formatHour(appointment.endTime);
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: appointment.color,
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 2, offset: const Offset(0, 1))],
+                              ),
+                              constraints: const BoxConstraints(maxHeight: 80), // Increased to 80
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    flex: 1,
+                                    child: Text(
+                                      appointment.subject,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        height: 1.2,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Flexible(
+                                    flex: 1,
+                                    child: Text(
+                                      '$startTime - $endTime',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.clip,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           final date = _selectedDate ?? DateTime.now();
           _addTaskForDate(date);
         },
-        label: const Text("Nouvelle tâche"),
+        label: const Text("Nouvelle tâche", style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.blue[700],
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
