@@ -1,15 +1,18 @@
+enum ModificationType { original, movedFrom, movedTo }
+
 class Task {
   String task;
-  String day; // date+heure iso8601
+  String day;
   int durationMinutes;
   bool isChecked;
+  ModificationType modificationType;
 
   Task({
     required this.task,
     required this.day,
     this.durationMinutes = 60,
     this.isChecked = false,
-    
+    this.modificationType = ModificationType.original,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
@@ -17,6 +20,12 @@ class Task {
         day: json['day'],
         durationMinutes: json['durationMinutes'] ?? 60,
         isChecked: json['isChecked'] ?? false,
+        modificationType: json['modificationType'] != null
+            ? ModificationType.values.firstWhere(
+                (e) => e.toString() == 'ModificationType.' + json['modificationType'],
+                orElse: () => ModificationType.original,
+              )
+            : ModificationType.original,
       );
 
   Map<String, dynamic> toJson() => {
@@ -24,5 +33,6 @@ class Task {
         'day': day,
         'durationMinutes': durationMinutes,
         'isChecked': isChecked,
+        'modificationType': modificationType.toString().split('.').last,
       };
 }

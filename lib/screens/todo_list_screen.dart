@@ -14,7 +14,7 @@ class TodoListScreen extends StatefulWidget {
 class _TodoListScreenState extends State<TodoListScreen> {
   final TaskStorageService _storageService = TaskStorageService();
   List<Task> tasks = [];
-  String? selectedDate; // Pour stocker la date sélectionnée dans la sidebar
+  String? selectedDate;
 
   @override
   void initState() {
@@ -43,20 +43,130 @@ class _TodoListScreenState extends State<TodoListScreen> {
     _storageService.saveTasks(tasks);
   }
 
+  void _rescheduleTask(Task oldTask) async {
+    final TextEditingController controller = TextEditingController(text: oldTask.task);
+    DateTime? newDateTime = DateTime.parse(oldTask.day).toLocal();
+    int newDuration = oldTask.durationMinutes;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Modifier l'horaire"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(labelText: "Nom de la tâche"),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Text("Date & heure : "),
+                  TextButton(
+                    onPressed: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: newDateTime!,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(newDateTime!),
+                        );
+                        if (pickedTime != null) {
+                          setState(() {
+                            newDateTime = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                          });
+                        }
+                      }
+                    },
+                    child: Text(
+                      newDateTime == null
+                          ? "Choisir"
+                          : "${newDateTime!.toLocal()}".split('.').first,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text("Durée (min) : "),
+                  DropdownButton<int>(
+                    value: newDuration,
+                    items: [15, 30, 60, 90, 120]
+                        .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
+                        .toList(),
+                    onChanged: (val) => setState(() => newDuration = val ?? 60),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Annuler"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (controller.text.trim().isEmpty || newDateTime == null) return;
+                Navigator.pop(context, true);
+              },
+              child: const Text("Valider"),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        oldTask.modificationType = ModificationType.movedFrom;
+
+        final newTask = Task(
+          task: controller.text.trim(),
+          day: newDateTime!.toIso8601String(),
+          durationMinutes: newDuration,
+          isChecked: false,
+          modificationType: ModificationType.movedTo,
+        );
+
+        tasks.add(newTask);
+      });
+
+      await _storageService.saveTasks(tasks);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Trier par date et heure
     tasks.sort(
       (a, b) => DateTime.parse(a.day).compareTo(DateTime.parse(b.day)),
     );
 
-    // Extraire les jours uniques
-    final uniqueDays = tasks.map((task) => DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0]).toSet().toList();
+    final uniqueDays = tasks
+        .map((task) => DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0])
+        .toSet()
+        .toList();
 
-    // Filtrer les tâches selon la date sélectionnée, ou toutes si aucune sélection
     final filteredTasks = selectedDate == null
         ? tasks
-        : tasks.where((task) => DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0] == selectedDate).toList();
+        : tasks
+            .where((task) =>
+                DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0] ==
+                selectedDate)
+            .toList();
 
     final Map<String, List<Task>> groupedTasks = {};
     for (var task in filteredTasks) {
@@ -66,7 +176,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E90FF), // Bleu dodger
+        backgroundColor: const Color(0xFF1E90FF),
         title: const Text('🗂️ Tâches par date', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
@@ -96,7 +206,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
           padding: EdgeInsets.zero,
           children: <Widget>[
             const DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF1E90FF)), // Bleu dodger
+              decoration: BoxDecoration(color: Color(0xFF1E90FF)),
               child: Text(
                 'Choisir un jour',
                 style: TextStyle(color: Colors.white, fontSize: 24),
@@ -127,7 +237,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
         ),
       ),
       body: Container(
-        color: const Color(0xFFE6F0FA), // Bleu très clair
+        color: const Color(0xFFE6F0FA),
         padding: const EdgeInsets.all(12.0),
         child: groupedTasks.isEmpty
             ? const Center(child: Text("📝 Aucune tâche disponible", style: TextStyle(color: Colors.grey)))
@@ -146,7 +256,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF104E8B), // Bleu foncé slate
+                          color: Color(0xFF104E8B),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -162,6 +272,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               task: task,
                               onToggle: () => _toggleTaskCheck(task),
                               onDelete: () => _deleteTask(task),
+                              onEdit: () => _rescheduleTask(task),
                             ),
                           );
                         },
