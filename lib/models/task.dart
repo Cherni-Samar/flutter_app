@@ -9,6 +9,7 @@ class Task {
     required this.day,
     this.durationMinutes = 60,
     this.isChecked = false,
+    
   });
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
