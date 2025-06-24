@@ -1,21 +1,36 @@
 {
   "tasks": [
     {
-      "id": "726e"
+      "id": "1",
+      "task": "Cours principal",
+      "day": "2025-06-20T10:00:00Z",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "modificationType": "original"
     },
     {
-      "id": "a7c1",
+      "id": "2",
       "task": "Révision for me",
-      "day": "2025-06-26T10:30:00",
+      "day": "2025-06-26T10:30:00Z",
       "durationMinutes": 45,
-      "isChecked": false
+      "isChecked": false,
+      "modificationType": "original"
     },
     {
-      "id": "5770",
-      "task": "Révision for me",
-      "day": "2025-06-26T10:30:00",
-      "durationMinutes": 45,
-      "isChecked": false
+      "id": "3",
+      "task": "test for now",
+      "day": "2025-06-20T10:00:00Z",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "modificationType": "original"
+    },
+    {
+      "id": "2e31",
+      "task": "samar",
+      "day": "2025-06-24T16:00:00.000",
+      "durationMinutes": 30,
+      "isChecked": false,
+      "modificationType": "original"
     }
   ]
 }

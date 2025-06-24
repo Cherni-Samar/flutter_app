@@ -9,8 +9,8 @@ class CalendarPage extends StatefulWidget {
   const CalendarPage({
     required this.tasks,
     required this.onTasksUpdated,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -20,7 +20,7 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  Map<DateTime, List<Task>> _groupedTasks = {};
+  final Map<DateTime, List<Task>> _groupedTasks = {};
 
   @override
   void initState() {
@@ -46,19 +46,19 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _showAddTaskDialog() async {
-    final TextEditingController _controller = TextEditingController();
+    final TextEditingController controller = TextEditingController();
 
     final newTaskText = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("Ajouter une tâche pour le ${_formatDate(_selectedDay!)}"),
         content: TextField(
-          controller: _controller,
+          controller: controller,
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Texte de la tâche'),
           onSubmitted: (_) {
-            if (_controller.text.trim().isNotEmpty) {
-              Navigator.pop(context, _controller.text.trim());
+            if (controller.text.trim().isNotEmpty) {
+              Navigator.pop(context, controller.text.trim());
             }
           },
         ),
@@ -69,8 +69,8 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_controller.text.trim().isNotEmpty) {
-                Navigator.pop(context, _controller.text.trim());
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.pop(context, controller.text.trim());
               }
             },
             child: const Text('Ajouter'),

@@ -22,6 +22,7 @@ class Task {
         isChecked: json['isChecked'] ?? false,
         modificationType: json['modificationType'] != null
             ? ModificationType.values.firstWhere(
+                // ignore: prefer_interpolation_to_compose_strings
                 (e) => e.toString() == 'ModificationType.' + json['modificationType'],
                 orElse: () => ModificationType.original,
               )

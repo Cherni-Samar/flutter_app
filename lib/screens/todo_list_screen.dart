@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/outlook_calendar_page.dart';
 import '../models/task.dart';
 import '../services/task_storage_service.dart';
 import '../widgets/task_to_display.dart';
+import '../services/api_service.dart';
 
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
@@ -15,19 +17,31 @@ class _TodoListScreenState extends State<TodoListScreen> {
   final TaskStorageService _storageService = TaskStorageService();
   List<Task> tasks = [];
   String? selectedDate;
+  final ApiService _apiService = ApiService();
+
 
   @override
   void initState() {
     super.initState();
-    _loadTasks();
+    _loadTasksFromApi();
   }
 
-  Future<void> _loadTasks() async {
-    final loadedTasks = await _storageService.loadTasks();
-    setState(() {
-      tasks = loadedTasks;
-    });
+   Future<void> _loadTasksFromApi() async {
+    try {
+      final loadedTasks = await _apiService.fetchTasks();
+      if (kDebugMode) {
+        print("Tâches chargées depuis API: ${loadedTasks.length}");
+      }
+      setState(() {
+        tasks = loadedTasks;
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print("Erreur lors du chargement des tâches: $e");
+      }
+    }
   }
+
 
   void _deleteTask(Task task) {
     setState(() {
@@ -44,7 +58,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   void _rescheduleTask(Task oldTask) async {
-    final TextEditingController controller = TextEditingController(text: oldTask.task);
+    final TextEditingController controller = TextEditingController(
+      text: oldTask.task,
+    );
     DateTime? newDateTime = DateTime.parse(oldTask.day).toLocal();
     int newDuration = oldTask.durationMinutes;
 
@@ -105,7 +121,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   DropdownButton<int>(
                     value: newDuration,
                     items: [15, 30, 60, 90, 120]
-                        .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
+                        .map(
+                          (d) => DropdownMenuItem(value: d, child: Text('$d')),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => newDuration = val ?? 60),
                   ),
@@ -120,7 +138,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (controller.text.trim().isEmpty || newDateTime == null) return;
+                if (controller.text.trim().isEmpty || newDateTime == null) {
+                  return;
+                }
                 Navigator.pop(context, true);
               },
               child: const Text("Valider"),
@@ -156,28 +176,41 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     final uniqueDays = tasks
-        .map((task) => DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0])
+        .map(
+          (task) => DateTime.parse(
+            task.day,
+          ).toLocal().toIso8601String().split('T')[0],
+        )
         .toSet()
         .toList();
 
     final filteredTasks = selectedDate == null
         ? tasks
         : tasks
-            .where((task) =>
-                DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0] ==
-                selectedDate)
-            .toList();
+              .where(
+                (task) =>
+                    DateTime.parse(
+                      task.day,
+                    ).toLocal().toIso8601String().split('T')[0] ==
+                    selectedDate,
+              )
+              .toList();
 
     final Map<String, List<Task>> groupedTasks = {};
     for (var task in filteredTasks) {
-      final dateKey = DateTime.parse(task.day).toLocal().toIso8601String().split('T')[0];
+      final dateKey = DateTime.parse(
+        task.day,
+      ).toLocal().toIso8601String().split('T')[0];
       groupedTasks.putIfAbsent(dateKey, () => []).add(task);
     }
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E90FF),
-        title: const Text('🗂️ Tâches par date', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          '🗂️ Tâches par date',
+          style: TextStyle(color: Colors.white),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_today, color: Colors.white),
@@ -213,9 +246,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
             ),
             ...uniqueDays.map((day) {
-              final formattedDay = DateTime.parse(day).toLocal().toString().split(' ')[0];
+              final formattedDay = DateTime.parse(
+                day,
+              ).toLocal().toString().split(' ')[0];
               return ListTile(
-                title: Text(formattedDay, style: const TextStyle(color: Color(0xFF104E8B))),
+                title: Text(
+                  formattedDay,
+                  style: const TextStyle(color: Color(0xFF104E8B)),
+                ),
                 onTap: () {
                   setState(() {
                     selectedDate = day;
@@ -223,9 +261,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   Navigator.pop(context);
                 },
               );
-            }).toList(),
+            }),
             ListTile(
-              title: const Text('Tous les jours', style: TextStyle(color: Color(0xFF104E8B))),
+              title: const Text(
+                'Tous les jours',
+                style: TextStyle(color: Color(0xFF104E8B)),
+              ),
               onTap: () {
                 setState(() {
                   selectedDate = null;
@@ -240,13 +281,20 @@ class _TodoListScreenState extends State<TodoListScreen> {
         color: const Color(0xFFE6F0FA),
         padding: const EdgeInsets.all(12.0),
         child: groupedTasks.isEmpty
-            ? const Center(child: Text("📝 Aucune tâche disponible", style: TextStyle(color: Colors.grey)))
+            ? const Center(
+                child: Text(
+                  "📝 Aucune tâche disponible",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
             : ListView.builder(
                 itemCount: groupedTasks.length,
                 itemBuilder: (context, index) {
                   final dateStr = groupedTasks.keys.elementAt(index);
                   final tasksForDate = groupedTasks[dateStr]!;
-                  final formattedDate = DateTime.parse(dateStr).toLocal().toString().split(' ')[0];
+                  final formattedDate = DateTime.parse(
+                    dateStr,
+                  ).toLocal().toString().split(' ')[0];
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
