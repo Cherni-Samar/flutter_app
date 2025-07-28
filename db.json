@@ -1,36 +1,76 @@
 {
   "tasks": [
     {
-      "id": "1",
-      "task": "Cours principal",
-      "day": "2025-06-20T10:00:00Z",
+      "id": "[#b518e]",
+      "task": "ffff",
+      "day": "2025-06-24T17:00:00.000",
       "durationMinutes": 60,
       "isChecked": false,
-      "modificationType": "original"
+      "isModified": false
+    },
+    {
+      "id": "f2877d48-e8a7-4ed6-9af8-f04142ad68e0",
+      "task": "yayaya",
+      "day": "2025-06-25T16:30:00.000",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "isModified": false
+    },
+    {
+      "id": "5c3463dd-0ec1-43a7-ae2e-62a5b5d5424c",
+      "task": "testing",
+      "day": "2025-06-30T17:00:00.000",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "isModified": false
+    },
+    {
+      "id": "d0da",
+      "task": "cccc",
+      "day": "2025-07-23T18:00:00.000",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "isModified": false
+    },
+    {
+      "id": "34a8",
+      "task": "cccc",
+      "day": "2025-07-23T18:00:00.000",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "isModified": false
+    },
+    {
+      "id": "9c64",
+      "task": "samar",
+      "day": "2025-07-24T16:30:00.000",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "isModified": false
+    },
+    {
+      "id": "9c6c",
+      "task": "samar",
+      "day": "2025-07-24T16:30:00.000",
+      "durationMinutes": 60,
+      "isChecked": false,
+      "isModified": false
+    }
+  ],
+  "catchUpTasks": [
+    {
+      "id": "1",
+      "taskId": 1,
+      "catchUpDay": "2025-06-27T14:00:00Z",
+      "durationMinutes": 60,
+      "isChecked": false
     },
     {
       "id": "2",
-      "task": "Révision for me",
-      "day": "2025-06-26T10:30:00Z",
+      "taskId": 2,
+      "catchUpDay": "2025-06-28T10:30:00Z",
       "durationMinutes": 45,
-      "isChecked": false,
-      "modificationType": "original"
-    },
-    {
-      "id": "3",
-      "task": "test for now",
-      "day": "2025-06-20T10:00:00Z",
-      "durationMinutes": 60,
-      "isChecked": false,
-      "modificationType": "original"
-    },
-    {
-      "id": "2e31",
-      "task": "samar",
-      "day": "2025-06-24T16:00:00.000",
-      "durationMinutes": 30,
-      "isChecked": false,
-      "modificationType": "original"
+      "isChecked": true
     }
   ]
 }

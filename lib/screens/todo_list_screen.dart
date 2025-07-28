@@ -1,300 +1,79 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/outlook_calendar_page.dart';
+import 'package:get/get.dart';
+import '../controllers/task_controller.dart';
 import '../models/task.dart';
-import '../services/task_storage_service.dart';
+import '../models/catch_up_task.dart';
 import '../widgets/task_to_display.dart';
 import '../services/api_service.dart';
+import 'outlook_calendar_page.dart';
 
-class TodoListScreen extends StatefulWidget {
+class TodoListScreen extends StatelessWidget {
   const TodoListScreen({super.key});
 
   @override
-  State<TodoListScreen> createState() => _TodoListScreenState();
-}
+  Widget build(BuildContext context) {
+    final taskController = Get.find<TaskController>();
 
-class _TodoListScreenState extends State<TodoListScreen> {
-  final TaskStorageService _storageService = TaskStorageService();
-  List<Task> tasks = [];
-  String? selectedDate;
-  final ApiService _apiService = ApiService();
+    return Obx(() {
+      // 1. Créer une copie de la liste pour ne pas modifier l'originale pendant la construction.
+      final sortedTasks = RxList<Task>.from(taskController.tasks);
+      
+      // 2. Trier la copie.
+      sortedTasks.sort(
+        (a, b) => DateTime.parse(a.day).compareTo(DateTime.parse(b.day)),
+      );
 
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTasksFromApi();
-  }
-
-   Future<void> _loadTasksFromApi() async {
-    try {
-      final loadedTasks = await _apiService.fetchTasks();
-      if (kDebugMode) {
-        print("Tâches chargées depuis API: ${loadedTasks.length}");
+      // 3. Utiliser la copie triée (`sortedTasks`) pour le reste de la logique.
+      Map<String, List<Task>> groupedTasks = {};
+      for (var task in sortedTasks) {
+        final dateKey = DateTime.parse(
+          task.day,
+        ).toLocal().toIso8601String().split('T')[0];
+        groupedTasks.putIfAbsent(dateKey, () => []).add(task);
       }
-      setState(() {
-        tasks = loadedTasks;
-      });
-    } catch (e) {
-      if (kDebugMode) {
-        print("Erreur lors du chargement des tâches: $e");
-      }
-    }
-  }
 
-
-  void _deleteTask(Task task) {
-    setState(() {
-      tasks.remove(task);
-    });
-    _storageService.saveTasks(tasks);
-  }
-
-  void _toggleTaskCheck(Task task) {
-    setState(() {
-      task.isChecked = !task.isChecked;
-    });
-    _storageService.saveTasks(tasks);
-  }
-
-  void _rescheduleTask(Task oldTask) async {
-    final TextEditingController controller = TextEditingController(
-      text: oldTask.task,
-    );
-    DateTime? newDateTime = DateTime.parse(oldTask.day).toLocal();
-    int newDuration = oldTask.durationMinutes;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text("Modifier l'horaire"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: "Nom de la tâche"),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Text("Date & heure : "),
-                  TextButton(
-                    onPressed: () async {
-                      final pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: newDateTime!,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (pickedDate != null) {
-                        final pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.fromDateTime(newDateTime!),
-                        );
-                        if (pickedTime != null) {
-                          setState(() {
-                            newDateTime = DateTime(
-                              pickedDate.year,
-                              pickedDate.month,
-                              pickedDate.day,
-                              pickedTime.hour,
-                              pickedTime.minute,
-                            );
-                          });
-                        }
-                      }
-                    },
-                    child: Text(
-                      newDateTime == null
-                          ? "Choisir"
-                          : "${newDateTime!.toLocal()}".split('.').first,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text("Durée (min) : "),
-                  DropdownButton<int>(
-                    value: newDuration,
-                    items: [15, 30, 60, 90, 120]
-                        .map(
-                          (d) => DropdownMenuItem(value: d, child: Text('$d')),
-                        )
-                        .toList(),
-                    onChanged: (val) => setState(() => newDuration = val ?? 60),
-                  ),
-                ],
-              ),
-            ],
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1E90FF),
+          title: const Text(
+            '🗂️ Tâches par date',
+            style: TextStyle(color: Colors.white),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Annuler"),
-            ),
-            ElevatedButton(
+            IconButton(
+              icon: const Icon(Icons.calendar_today, color: Colors.white),
+              tooltip: 'Voir calendrier',
               onPressed: () {
-                if (controller.text.trim().isEmpty || newDateTime == null) {
-                  return;
-                }
-                Navigator.pop(context, true);
-              },
-              child: const Text("Valider"),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed == true) {
-      setState(() {
-        oldTask.modificationType = ModificationType.movedFrom;
-
-        final newTask = Task(
-          task: controller.text.trim(),
-          day: newDateTime!.toIso8601String(),
-          durationMinutes: newDuration,
-          isChecked: false,
-          modificationType: ModificationType.movedTo,
-        );
-
-        tasks.add(newTask);
-      });
-
-      await _storageService.saveTasks(tasks);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    tasks.sort(
-      (a, b) => DateTime.parse(a.day).compareTo(DateTime.parse(b.day)),
-    );
-
-    final uniqueDays = tasks
-        .map(
-          (task) => DateTime.parse(
-            task.day,
-          ).toLocal().toIso8601String().split('T')[0],
-        )
-        .toSet()
-        .toList();
-
-    final filteredTasks = selectedDate == null
-        ? tasks
-        : tasks
-              .where(
-                (task) =>
-                    DateTime.parse(
-                      task.day,
-                    ).toLocal().toIso8601String().split('T')[0] ==
-                    selectedDate,
-              )
-              .toList();
-
-    final Map<String, List<Task>> groupedTasks = {};
-    for (var task in filteredTasks) {
-      final dateKey = DateTime.parse(
-        task.day,
-      ).toLocal().toIso8601String().split('T')[0];
-      groupedTasks.putIfAbsent(dateKey, () => []).add(task);
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E90FF),
-        title: const Text(
-          '🗂️ Tâches par date',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today, color: Colors.white),
-            tooltip: 'Voir calendrier',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OutlookCalendarPage(
-                    tasks: tasks,
-                    onTasksUpdated: (updatedTasks) {
-                      setState(() {
-                        tasks = updatedTasks;
-                      });
-                      _storageService.saveTasks(tasks);
-                    },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OutlookCalendarPage(
+                      tasks: sortedTasks, // Utiliser la liste triée ici aussi
+                      onTasksUpdated: (updatedTasks) {
+                        taskController.tasks.assignAll(updatedTasks);
+                      },
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF1E90FF)),
-              child: Text(
-                'Choisir un jour',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ),
-            ...uniqueDays.map((day) {
-              final formattedDay = DateTime.parse(
-                day,
-              ).toLocal().toString().split(' ')[0];
-              return ListTile(
-                title: Text(
-                  formattedDay,
-                  style: const TextStyle(color: Color(0xFF104E8B)),
-                ),
-                onTap: () {
-                  setState(() {
-                    selectedDate = day;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            }),
-            ListTile(
-              title: const Text(
-                'Tous les jours',
-                style: TextStyle(color: Color(0xFF104E8B)),
-              ),
-              onTap: () {
-                setState(() {
-                  selectedDate = null;
-                });
-                Navigator.pop(context);
+                );
               },
             ),
           ],
         ),
-      ),
-      body: Container(
-        color: const Color(0xFFE6F0FA),
-        padding: const EdgeInsets.all(12.0),
-        child: groupedTasks.isEmpty
+        body: groupedTasks.isEmpty
             ? const Center(
                 child: Text(
                   "📝 Aucune tâche disponible",
                   style: TextStyle(color: Colors.grey),
                 ),
               )
-            : ListView.builder(
-                itemCount: groupedTasks.length,
-                itemBuilder: (context, index) {
-                  final dateStr = groupedTasks.keys.elementAt(index);
-                  final tasksForDate = groupedTasks[dateStr]!;
-                  final formattedDate = DateTime.parse(
-                    dateStr,
-                  ).toLocal().toString().split(' ')[0];
+            : ListView(
+                padding: const EdgeInsets.all(12),
+                children: groupedTasks.entries.map((entry) {
+                  final dateStr = entry.key;
+                  final tasksForDate = entry.value;
+                  // Utilisation d'un formatage plus sûr pour la date
+                  final formattedDate = '${DateTime.parse(dateStr).toLocal()}'.split(' ')[0];
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,29 +87,163 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: tasksForDate.length,
-                        itemBuilder: (context, taskIndex) {
-                          final task = tasksForDate[taskIndex];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: TaskToDisplay(
-                              task: task,
-                              onToggle: () => _toggleTaskCheck(task),
-                              onDelete: () => _deleteTask(task),
-                              onEdit: () => _rescheduleTask(task),
-                            ),
-                          );
-                        },
+                      ...tasksForDate.map(
+                        (task) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: TaskToDisplay(
+                            task: task,
+                            onToggle: () =>
+                                taskController.toggleTaskCheck(task),
+                            onDelete: () => taskController.deleteTask(task),
+                            onEdit: () =>
+                                _rescheduleTask(context, taskController, task),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 20),
                     ],
                   );
-                },
+                }).toList(),
               ),
+      );
+    });
+  }
+
+  Future<void> _rescheduleTask(
+    BuildContext context,
+    TaskController controller,
+    Task oldTask,
+  ) async {
+    final TextEditingController textController = TextEditingController(
+      text: oldTask.task,
+    );
+    DateTime? newDateTime = DateTime.parse(oldTask.day).toLocal();
+    int newDuration = oldTask.durationMinutes;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Modifier l'horaire"),
+          content: SingleChildScrollView( // Ajout pour éviter le débordement sur petits écrans
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: textController,
+                  decoration: const InputDecoration(labelText: "Nom de la tâche"),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Text("Date & heure : "),
+                    TextButton(
+                      onPressed: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: newDateTime!,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(newDateTime!),
+                          );
+                          if (pickedTime != null) {
+                            setState(() {
+                              newDateTime = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                      child: Text(
+                        newDateTime == null
+                            ? "Choisir"
+                            : "${newDateTime!.toLocal()}".split('.').first,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text("Durée (min) : "),
+                    DropdownButton<int>(
+                      value: newDuration,
+                      items: [15, 30, 60, 90, 120]
+                          .map(
+                            (d) => DropdownMenuItem(value: d, child: Text('$d')),
+                          )
+                          .toList(),
+                      onChanged: (val) => setState(() => newDuration = val ?? 60),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Annuler"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (textController.text.trim().isEmpty || newDateTime == null) {
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: const Text("Valider"),
+            ),
+          ],
+        ),
       ),
     );
+
+    if (confirmed == true) {
+      oldTask.isModified = true;
+
+      final newTask = Task(
+        id: UniqueKey().toString(),
+        task: textController.text.trim(),
+        day: newDateTime!.toIso8601String(),
+        durationMinutes: newDuration,
+        isChecked: false,
+        isModified: true,
+      );
+
+      controller.addTask(newTask);
+      controller.updateTask(oldTask);
+
+      // Créer la catchUpTask
+      final catchUpTask = CatchUpTask(
+        taskName: 'Rattrapage: ${textController.text.trim()}',
+        catchUpDay: DateTime.now()
+            .add(const Duration(days: 1))
+            .toIso8601String(),
+        durationMinutes: newDuration,
+        isChecked: false,
+        originalTaskId: oldTask.id!,
+      );
+
+      final success = await ApiService().sendCatchUpTaskToServer(catchUpTask);
+      if (success) {
+        if (kDebugMode) {
+          print("CatchUpTask créée avec succès !");
+        }
+      } else {
+        if (kDebugMode) {
+          print("Erreur lors de la création de CatchUpTask.");
+        }
+      }
+    }
   }
 }

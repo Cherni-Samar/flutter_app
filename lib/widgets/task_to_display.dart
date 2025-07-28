@@ -16,18 +16,15 @@ class TaskToDisplay extends StatelessWidget {
   });
 
   Color _getTaskColor(Task task) {
-    switch (task.modificationType) {
-      case ModificationType.movedFrom:
-        return Colors.red.withOpacity(0.7);
-      case ModificationType.movedTo:
-        return Colors.green.withOpacity(0.7);
-      default:
-        final int hash = task.task.hashCode;
-        if (hash % 4 == 0) return const Color(0xFF87CEEB);
-        if (hash % 4 == 1) return const Color(0xFF4682B4);
-        if (hash % 4 == 2) return const Color(0xFFADD8E6);
-        return const Color(0xFFB0E0E6);
+    if (task.isModified) {
+      return Colors.red.withOpacity(0.7); // tâche déplacée ou remplacée
     }
+
+    final int hash = task.task.hashCode;
+    if (hash % 4 == 0) return const Color(0xFF87CEEB);
+    if (hash % 4 == 1) return const Color(0xFF4682B4);
+    if (hash % 4 == 2) return const Color(0xFFADD8E6);
+    return const Color(0xFFB0E0E6);
   }
 
   @override
@@ -46,8 +43,7 @@ class TaskToDisplay extends StatelessWidget {
               child: Text(
                 task.task,
                 style: TextStyle(
-                  decoration:
-                      task.isChecked ? TextDecoration.lineThrough : null,
+                  decoration: task.isChecked ? TextDecoration.lineThrough : null,
                   fontSize: 16,
                   color: Colors.white,
                 ),

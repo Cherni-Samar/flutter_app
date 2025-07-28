@@ -1,39 +1,35 @@
-enum ModificationType { original, movedFrom, movedTo }
-
 class Task {
+  String? id;  // changer en String? au lieu de int?
   String task;
   String day;
   int durationMinutes;
   bool isChecked;
-  ModificationType modificationType;
+  bool isModified;
 
   Task({
+    this.id,
     required this.task,
     required this.day,
     this.durationMinutes = 60,
     this.isChecked = false,
-    this.modificationType = ModificationType.original,
+    this.isModified = false,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
-        task: json['task'],
-        day: json['day'],
-        durationMinutes: json['durationMinutes'] ?? 60,
-        isChecked: json['isChecked'] ?? false,
-        modificationType: json['modificationType'] != null
-            ? ModificationType.values.firstWhere(
-                // ignore: prefer_interpolation_to_compose_strings
-                (e) => e.toString() == 'ModificationType.' + json['modificationType'],
-                orElse: () => ModificationType.original,
-              )
-            : ModificationType.original,
-      );
+    id: json['id']?.toString(),  // forcer en String
+    task: json['task'],
+    day: json['day'],
+    durationMinutes: int.tryParse(json['durationMinutes'].toString()) ?? 0,
+    isChecked: json['isChecked'] ?? false,
+    isModified: json['isModified'] ?? false,
+  );
 
   Map<String, dynamic> toJson() => {
-        'task': task,
-        'day': day,
-        'durationMinutes': durationMinutes,
-        'isChecked': isChecked,
-        'modificationType': modificationType.toString().split('.').last,
-      };
+    'id': id,
+    'task': task,
+    'day': day,
+    'durationMinutes': durationMinutes,
+    'isChecked': isChecked,
+    'isModified': isModified,
+  };
 }
